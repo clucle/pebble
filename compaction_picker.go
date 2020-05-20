@@ -295,11 +295,11 @@ func (p *compactionPickerByScore) initScores(inProgressCompactions []compactionI
 
 func (p *compactionPickerByScore) initL0Score(inProgressCompactions []compactionInfo) {
 	if p.opts.Experimental.L0SublevelCompactions {
-		// If L0SubLevels are present, we use the sublevel count as opposed to
+		// If L0Sublevels are present, we use the sublevel count as opposed to
 		// the L0 file count to score this level. The base vs intra-L0
 		// compaction determination happens in pickAuto, not here.
 		p.scores[0].score =
-			float64(p.vers.L0SubLevels.MaxDepthAfterOngoingCompactions()) / float64(p.opts.L0CompactionThreshold)
+			float64(p.vers.L0Sublevels.MaxDepthAfterOngoingCompactions()) / float64(p.opts.L0CompactionThreshold)
 		return
 	}
 	// TODO(peter): The current scoring logic precludes concurrent L0->Lbase
@@ -532,11 +532,11 @@ func pickAutoHelper(
 // Helper method to pick compactions originating from L0. Uses information about
 // sublevels to generate a compaction.
 func pickL0(env compactionEnv, opts *Options, vers *version, baseLevel int) (c *compaction) {
-	// It is important to pass information about Lbase files to L0SubLevels
+	// It is important to pass information about Lbase files to L0Sublevels
 	// so it can pick a compaction that does not conflict with an Lbase => Lbase+1
 	// compaction. Without this, we observed reduced concurrency of L0=>Lbase
 	// compactions, and increasing read amplification in L0.
-	lcf, err := vers.L0SubLevels.PickBaseCompaction(
+	lcf, err := vers.L0Sublevels.PickBaseCompaction(
 		opts.L0CompactionThreshold, vers.Files[baseLevel])
 	if err != nil {
 		opts.Logger.Infof("error when picking base compaction: %s", err)
@@ -544,7 +544,7 @@ func pickL0(env compactionEnv, opts *Options, vers *version, baseLevel int) (c *
 	}
 	if lcf != nil {
 		// Manually build the compaction as opposed to calling
-		// pickAutoHelper. This is because L0SubLevels has already added
+		// pickAutoHelper. This is because L0Sublevels has already added
 		// any overlapping L0 SSTables that need to be added, and
 		// because compactions built by L0SSTables do not necessarily
 		// pick contiguous sequences of files in p.vers.Files[0].
@@ -568,7 +568,7 @@ func pickL0(env compactionEnv, opts *Options, vers *version, baseLevel int) (c *
 
 	// Couldn't choose a base compaction. Try choosing an intra-L0
 	// compaction.
-	lcf, err = vers.L0SubLevels.PickIntraL0Compaction(env.earliestUnflushedSeqNum, opts.L0CompactionThreshold)
+	lcf, err = vers.L0Sublevels.PickIntraL0Compaction(env.earliestUnflushedSeqNum, opts.L0CompactionThreshold)
 	if err != nil {
 		opts.Logger.Infof("error when picking base compaction: %s", err)
 		return
